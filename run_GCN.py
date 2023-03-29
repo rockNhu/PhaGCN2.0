@@ -62,9 +62,9 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
     train_label = torch.from_numpy(y_train).long().to(device)
     num_classes = max(labels)+1
-    train_mask = torch.from_numpy(train_mask.astype(np.bool)).to(device)
+    train_mask = torch.from_numpy(train_mask.astype(np.bool_)).to(device)
     test_label = torch.from_numpy(y_test).long().to(device)
-    test_mask = torch.from_numpy(test_mask.astype(np.bool)).to(device)
+    test_mask = torch.from_numpy(test_mask.astype(np.bool_)).to(device)
 
     i = torch.from_numpy(features[0]).long().to(device)
     v = torch.from_numpy(features[1]).to(device)
@@ -77,9 +77,9 @@ if torch.cuda.is_available():
 else:
     train_label = torch.from_numpy(y_train).long()
     num_classes = max(labels)+1
-    train_mask = torch.from_numpy(train_mask.astype(np.bool))
+    train_mask = torch.from_numpy(train_mask.astype(np.bool_))
     test_label = torch.from_numpy(y_test).long()
-    test_mask = torch.from_numpy(test_mask.astype(np.bool))
+    test_mask = torch.from_numpy(test_mask.astype(np.bool_))
 
     i = torch.from_numpy(features[0]).long()
     v = torch.from_numpy(features[1])
