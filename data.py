@@ -1,19 +1,16 @@
-import  numpy as np
-import  pickle as pkl
-import  networkx as nx
-import  scipy.sparse as sp
-from    scipy.sparse.linalg import eigsh
-import  sys
+import numpy as np
+import pickle as pkl
+import networkx as nx
+import scipy.sparse as sp
+from scipy.sparse.linalg import eigsh
+import sys
 
 
 def parse_index_file(filename):
     """
     Parse index file.
     """
-    index = []
-    for line in open(filename):
-        index.append(int(line.strip()))
-    return index
+    return [int(line.strip()) for line in open(filename)]
 
 
 def sample_mask(idx, l):
@@ -47,21 +44,22 @@ def load_data(dataset_str):
     """
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
-    for i in range(len(names)):
-        with open("data/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
+    for name in names:
+        with open(f"data/ind.{dataset_str}.{name}", 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
+    test_idx_reorder = parse_index_file(f"data/ind.{dataset_str}.test.index")
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset_str == 'citeseer':
         # Fix citeseer dataset (there are some isolated nodes in the graph)
         # Find isolated nodes, add them as zero-vecs into the right position
-        test_idx_range_full = range(min(test_idx_reorder), max(test_idx_reorder)+1)
+        test_idx_range_full = range(
+            min(test_idx_reorder), max(test_idx_reorder)+1)
         tx_extended = sp.lil_matrix((len(test_idx_range_full), x.shape[1]))
         tx_extended[test_idx_range-min(test_idx_range), :] = tx
         tx = tx_extended
@@ -119,31 +117,29 @@ def preprocess_features(features):
     """
     Row-normalize feature matrix and convert to tuple representation
     """
-    rowsum = np.array(features.sum(1)) # get sum of each row, [2708, 1]
-    r_inv = np.power(rowsum, -1).flatten() # 1/rowsum, [2708]
-    r_inv[np.isinf(r_inv)] = 0. # zero inf data
-    r_mat_inv = sp.diags(r_inv) # sparse diagonal matrix, [2708, 2708]
-    features = r_mat_inv.dot(features) # D^-1:[2708, 2708]@X:[2708, 2708]
-    return sparse_to_tuple(features) # [coordinates, data, shape], []
+    rowsum = np.array(features.sum(1))  # get sum of each row, [2708, 1]
+    r_inv = np.power(rowsum, -1).flatten()  # 1/rowsum, [2708]
+    r_inv[np.isinf(r_inv)] = 0.  # zero inf data
+    r_mat_inv = sp.diags(r_inv)  # sparse diagonal matrix, [2708, 2708]
+    features = r_mat_inv.dot(features)  # D^-1:[2708, 2708]@X:[2708, 2708]
+    return sparse_to_tuple(features)  # [coordinates, data, shape], []
 
 
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
     adj = sp.coo_matrix(adj)
-    rowsum = np.array(adj.sum(1)) # D
-    d_inv_sqrt = np.power(rowsum, -0.5).flatten() # D^-0.5
+    rowsum = np.array(adj.sum(1))  # D
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()  # D^-0.5
     d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-    d_mat_inv_sqrt = sp.diags(d_inv_sqrt) # D^-0.5
-    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo() # D^-0.5AD^0.5
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)  # D^-0.5
+    # D^-0.5AD^0.5
+    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
 
 
 def preprocess_adj(adj):
     """Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."""
     adj_normalized = normalize_adj(adj + sp.eye(adj.shape[0]))
     return sparse_to_tuple(adj_normalized)
-
-
-
 
 
 def chebyshev_polynomials(adj, k):
@@ -155,9 +151,10 @@ def chebyshev_polynomials(adj, k):
     adj_normalized = normalize_adj(adj)
     laplacian = sp.eye(adj.shape[0]) - adj_normalized
     largest_eigval, _ = eigsh(laplacian, 1, which='LM')
-    scaled_laplacian = (2. / largest_eigval[0]) * laplacian - sp.eye(adj.shape[0])
+    scaled_laplacian = (
+        2. / largest_eigval[0]) * laplacian - sp.eye(adj.shape[0])
 
-    t_k = list()
+    t_k = []
     t_k.append(sp.eye(adj.shape[0]))
     t_k.append(scaled_laplacian)
 

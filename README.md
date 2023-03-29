@@ -112,7 +112,7 @@ $ python3 deal_all_pre.py
 Please modify your data set until no label error is reported(The label should contain at least one space).
 Take the sequence number and corresponding family name in a TXT text and named **taxa.txt** (separated by tabs)then place it in the CHEER folder.Run:
 ```bash
-$ python3 deal_result.py`
+$ python3 deal_result.py
 ```
 It generates a folder of result,in this folder replaces the first line of **code.txt** with line 159 of **run_GCN.py** in the body of PhaGCN, and the second line with line 643 of **run_Knowledgegraph.py**,The other five files replace each of the five files in the **database** folder.
 3. Step three:
@@ -136,10 +136,15 @@ You can type in the command `export MKL_SERVICE_FORCE_INTEL=1` before runing **r
 
 # References
 how to cite this tool:
-```
-Jiayu Shang, Jingzhe Jiang, Yanni Sun, Bacteriophage classification for assembled contigs using graph convolutional network, Bioinformatics, Volume 37, Issue Supplement_1, July 2021, Pages i25–i33, https://doi.org/10.1093/bioinformatics/btab293
+>Jiayu Shang, Jingzhe Jiang, Yanni Sun, Bacteriophage classification for assembled contigs using graph convolutional network, Bioinformatics, Volume 37, Issue Supplement_1, July 2021, Pages i25–i33, https://doi.org/10.1093/bioinformatics/btab293
 
-Jing-Zhe Jiang, Wen-Guang Yuan, Jiayu Shang, Ying-Hui Shi, Li-Ling Yang, Min Liu, Peng Zhu, Tao Jin, Yanni Sun, Li-Hong Yuan, Virus classification for viral genomic fragments using PhaGCN2, Briefings in Bioinformatics, 2022;, bbac505, https://doi.org/10.1093/bib/bbac505
-```
+>Jing-Zhe Jiang, Wen-Guang Yuan, Jiayu Shang, Ying-Hui Shi, Li-Ling Yang, Min Liu, Peng Zhu, Tao Jin, Yanni Sun, Li-Hong Yuan, Virus classification for viral genomic fragments using PhaGCN2, Briefings in Bioinformatics, 2022;, bbac505, https://doi.org/10.1093/bib/bbac505
 
+# Change by Rock Nhu
+New package scipy==1.8 using new import:
+`from scipy.sparse.linalg.eigen.arpack import eigsh` -> `from    scipy.sparse.linalg import eigsh` in `data.py`
 
+New package numpy==1.24 using new bool change way:
+`astype(np.bool)` -> `astype(np.bool_)` in `run_GCN.py`
+
+Format the `run_Speed_up.py` -> `run_Speed_up2.py`, the 2 could run in other directory.

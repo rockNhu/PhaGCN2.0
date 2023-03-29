@@ -1,10 +1,8 @@
 import os
 import sys
 import Bio
-import logging
 import argparse
 import subprocess
-import scipy as sp
 import numpy as np
 import pandas as pd
 import pickle as pkl
@@ -84,7 +82,7 @@ with open("name_list.csv",'w') as list_out:
     list_out.write("contig_name,idx\n")
     for file_n in file_list:
         for record in SeqIO.parse(contig_in+file_n, "fasta"):
-            name = str(old_file_id) + "_" + str(contig_id)
+            name = f"{old_file_id}_{contig_id}"
             contig_id += 1
             list_out.write(record.id + "," + name + "\n")
             _ = SeqIO.write(record, contig_out+name+".fasta", "fasta")
@@ -121,7 +119,11 @@ for file in file_list:
         frame6 = return_protien(rev_contig[2:])
         proteins = np.concatenate([frame1, frame2, frame3, frame4, frame5, frame6])
         for i in range(len(proteins)):
-            rec = SeqRecord(Seq(proteins[i]), id=str(label_id)+ "_" + str(contig_id) + "_" + str(i), description="")
+            rec = SeqRecord(
+                Seq(proteins[i]),
+                id=f"{label_id}_{contig_id}_{str(i)}",
+                description="",
+            )
             protein_record.append(rec)
         _ = SeqIO.write(protein_record, file_out_fn+file, "fasta")
 
@@ -146,8 +148,7 @@ def make_diamond_db(cpu: int):
     if res.returncode != 0:
         print('Error creating Diamond database')
         exit(1)
-    diamond_db_fp = diamond_db_bp + '.dmnd'
-    return diamond_db_fp
+    return f'{diamond_db_bp}.dmnd'
 
 
 def run_diamond(aa_fp, db_fp, cpu: int, diamond_out_fn):
@@ -222,9 +223,9 @@ def make_protein_clusters_mcl(abc_fp, out_p, inflation=2):
     #subprocess.check_call("awk '$1!=$2 {{print $1,$2,$11}}' {0} > {1}".format(blast_fp, abc_fp), shell=True)
     print("Running MCL...")
     abc_fn = "merged"
-    mci_fn = '{}.mci'.format(abc_fn)
+    mci_fn = f'{abc_fn}.mci'
     mci_fp = os.path.join(out_p, mci_fn)
-    mcxload_fn = '{}_mcxload.tab'.format(abc_fn)
+    mcxload_fn = f'{abc_fn}_mcxload.tab'
     mcxload_fp = os.path.join(out_p, mcxload_fn)
     subprocess.check_call("mcxload -abc {0} --stream-mirror --stream-neg-log10 -stream-tf 'ceil(200)' -o {1}"
                           " -write-tab {2}".format(abc_fp, mci_fp, mcxload_fp), shell=True)
@@ -283,7 +284,7 @@ def build_clusters(fp, gene2genome):
         except KeyError:
             prots_in = [p for p in prots if p in gene2genome.index]
             not_in = frozenset(prots) - frozenset(prots_in)
-            print("{} protein(s) without contig: {}".format(len(not_in), not_in))
+            print(f"{len(not_in)} protein(s) without contig: {not_in}")
             gene2genome.loc[prots_in, "cluster"] = clust
     # Keys
     for clust, prots in gene2genome.groupby("cluster"):
@@ -297,7 +298,9 @@ def build_clusters(fp, gene2genome):
                     key_count[k] += 1
                 except KeyError:
                     key_count[k] = 1
-            clusters_df.loc[clust, "keys"] = "; ".join(["{} ({})".format(x, y) for x, y in key_count.items()])
+            clusters_df.loc[clust, "keys"] = "; ".join(
+                [f"{x} ({y})" for x, y in key_count.items()]
+            )
     gene2genome.reset_index(inplace=True)
     clusters_df.reset_index(inplace=True)
     profiles_df = gene2genome.loc[:, ["contig_id", "cluster"]].drop_duplicates()
@@ -320,23 +323,23 @@ output_dir = out_f
 
 
 for name, df in zip(names, dfs):
-    fn = "Cyber_{}.csv".format(name)
+    fn = f"Cyber_{name}.csv"
     fp = os.path.join(output_dir, fn)
     index_id = name.strip('s') + '_id'
     if not os.path.exists(fp):
         df.set_index(index_id).to_csv(fp)
     else:
-        print("File {} exists and will be used. Use -f to overwrite.".format(fn))
+        print(f"File {fn} exists and will be used. Use -f to overwrite.")
 
-        
-        
-        
+
+
+
 profiles_fn = "Cyber_profiles.csv"
 profiles_fp = os.path.join(out_f, profiles_fn)
 if not os.path.exists(profiles_fp):
     profiles_df.to_csv(profiles_fp, index=False)
 else:
-    print("File {} exists and will be used. Use -f to overwrite.".format(profiles_fn))
+    print(f"File {profiles_df} exists and will be used. Use -f to overwrite.")
 
 
 
@@ -434,7 +437,9 @@ profiles_df = pd.read_csv("out/Cyber_profiles.csv")
 # Replace names
 contigs_csv_df = contigs_df.copy()
 contigs_csv_df['contig_id'] = contigs_csv_df['contig_id'].str.replace(' ', '~')
-print("Read {} entries from {}".format(len(contigs_csv_df), os.path.join(output_dir, '{}_contigs.csv'.format(name))))
+print(
+    f"Read {len(contigs_csv_df)} entries from {os.path.join(output_dir, f'{name}_contigs.csv')}"
+)
 contigs_csv_df.index.name = "pos"
 contigs_csv_df.reset_index(inplace=True)
 
@@ -455,7 +460,9 @@ pcs_csv_df.fillna({"nb_proteins": 0}, inplace=True)
 pcs_csv_df = pcs_csv_df[pcs_csv_df['nb_proteins'] > 1]  # .query("nb_contigs>1")
 at_least_a_cont = cont_by_pc[cont_by_pc['nb_proteins'] > 1]  # cont_by_pc.query("nb_contigs>1")
 profiles = profiles[profiles['pc_id'].isin(at_least_a_cont.pc_id)]
-print("Read {} entries (dropped {} singletons) from {}".format(len(profiles), (before_filter - len(profiles)), profiles_fp))
+print(
+    f"Read {len(profiles)} entries (dropped {before_filter - len(profiles)} singletons) from {profiles_fp}"
+)
 pcs_csv_df = pcs_csv_df.reset_index(drop=True)
 pcs_csv_df.index.name = "pos"
 pcs_csv_df = pcs_csv_df.reset_index()

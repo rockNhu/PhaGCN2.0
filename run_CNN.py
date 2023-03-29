@@ -2,11 +2,8 @@ import os
 import numpy as np
 import subprocess
 import torch
-import torch.utils.data as Data
 from torch import nn
 from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 from CNNmodel import CAPCNN
 import argparse
 import pickle as pkl
@@ -21,21 +18,22 @@ else:
     print("folder {0} exist... cleaning dictionary".format(Knowledge_graph))
     if os.listdir(Knowledge_graph):
         try:
-            _ = subprocess.check_call("rm -rf {0}".format(Knowledge_graph), shell=True)
+            _ = subprocess.check_call(
+                "rm -rf {0}".format(Knowledge_graph), shell=True)
             _ = os.makedirs(Knowledge_graph)
             print("Dictionary cleaned")
         except:
             print("Cannot clean your folder... permission denied")
             exit(1)
 
-#try:
+# try:
 #    _ = subprocess.check_call("mkdir {0}".format(Knowledge_graph), shell=True)
-#except:
+# except:
 #    try:
 #        _ = subprocess.check_call("rm {0}*".format(Knowledge_graph), shell=True)
 #    except:
 #        print("Cannot clean your folder... permission denied")
-    
+
 try:
     os.chdir("CNN_Classifier/")
 except:
@@ -47,13 +45,13 @@ file_list = sorted(os.listdir(contig_in))
 seq = []
 old_file_id = 0
 contig_id = 0
-with open("name_list.csv",'w') as list_out:
+with open("name_list.csv", 'w') as list_out:
     list_out.write("contig_name,idx\n")
     for file_n in file_list:
         for record in SeqIO.parse(contig_in+file_n, "fasta"):
-            name = str(old_file_id) + "_" + str(contig_id)
+            name = f"{old_file_id}_{contig_id}"
             contig_id += 1
-            list_out.write(record.id + "," + name)
+            list_out.write(f"{record.id},{name}")
             _ = SeqIO.write(record, contig_out+name+".fasta", "fasta")
         old_file_id += 1
 
@@ -65,14 +63,13 @@ except:
     exit(1)
 
 
-
 """
 ===============================================================
                         Input Params
 ===============================================================
 """
 parser = argparse.ArgumentParser(description='manual to this script')
-parser.add_argument('--gpus', type=int, default = 0)
+parser.add_argument('--gpus', type=int, default=0)
 parser.add_argument('--n', type=int, default=172)
 parser.add_argument('--kmers', type=str, default='3,7,11,15')
 parser.add_argument('--t', type=float, default=0.6)
@@ -97,8 +94,9 @@ if torch.cuda.is_available():
 else:
     print("Running with cpu")
 
-cnn = CAPCNN.WCNN(num_token=100,num_class=args.n,kernel_sizes=kmers, kernel_nums=[256, 256, 256, 256])
-pretrained_dict=torch.load(args.classifier, map_location='cpu')
+cnn = CAPCNN.WCNN(num_token=100, num_class=args.n,
+                  kernel_sizes=kmers, kernel_nums=[256, 256, 256, 256])
+pretrained_dict = torch.load(args.classifier, map_location='cpu')
 cnn.load_state_dict(pretrained_dict)
 
 # Evaluation mode
@@ -113,7 +111,7 @@ old_weight = tmp['weight']
 padding = torch.zeros((1, 100))
 new_weight = torch.cat([tmp['weight'], padding])
 torch_embeds.weight = torch.nn.Parameter(new_weight)
-torch_embeds.weight.requires_grad=False
+torch_embeds.weight.requires_grad = False
 
 
 """
@@ -124,12 +122,12 @@ torch_embeds.weight.requires_grad=False
 compress_feature = []
 compress_label = []
 
-        
+
 file_list = os.listdir("dataset")
 file_list = sorted(file_list)
 
 for name in file_list:
-    val = np.genfromtxt('dataset/'+name, delimiter=',')
+    val = np.genfromtxt(f'dataset/{name}', delimiter=',')
     val_label = val[:, -1]
     val_feature = val[:, :-1]
     label = int(name.split(".")[0])
@@ -142,7 +140,7 @@ for name in file_list:
     if torch.cuda.is_available():
         with torch.no_grad():
             out = cnn(val_feature.cuda())
-        out = out.cpu().detach().numpy()  
+        out = out.cpu().detach().numpy()
     else:
         with torch.no_grad():
             out = cnn(val_feature)
@@ -151,7 +149,6 @@ for name in file_list:
     out = np.sum(out, axis=0)
     compress_feature.append(out)
     compress_label.append(label)
-
 
 
 compress_feature = np.array(compress_feature)
